@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Text, View, FlatList, TouchableHighlight, SafeAreaView, ScrollView, Image } from 'react-native';
+import { Text, View, FlatList, TouchableHighlight, SafeAreaView, ScrollView, Image, TextInput } from 'react-native';
 import axios from 'axios';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import { styles } from './styles';
 
 type Player = {
   id: string;
@@ -26,6 +27,7 @@ const Stack = createStackNavigator();
 
 const PlayerListScreen = ({ navigation }: { navigation: any }) => {
   const [players, setPlayers] = useState<Player[]>([]);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     axios.get('https://api.mpg.football/api/data/championship-players-pool/1')
@@ -36,17 +38,27 @@ const PlayerListScreen = ({ navigation }: { navigation: any }) => {
   }, []);
 
   const renderItem = ({ item }: { item: Player }) => (
-    <TouchableHighlight onPress={() => navigation.navigate('PlayerDetail', { playerId: item.id, firstname: item.firstName, lastName: item.lastName, position: item.position, ultraPosition: item.ultraPosition, clubId: item.clubId })}>
-      <View>
-        <Text>{item.firstName ? item.firstName : ''} {item.lastName ? item.lastName : ''} - {ultraPositionMapping[item.ultraPosition]}</Text>
+    <TouchableHighlight onPress={() => navigation.navigate('PlayerDetail', { playerId: item.id, firstname: item.firstName, lastName: item.lastName, position: item.position, ultraPosition: item.ultraPosition, clubId: item.clubId })} underlayColor="transparent" >
+      <View style={styles.item}>
+        <Text style={styles.itemText}>{item.firstName ? item.firstName : ''} {item.lastName ? item.lastName : ''} - {ultraPositionMapping[item.ultraPosition]}</Text>
       </View>
     </TouchableHighlight>
   );
 
+  const filteredPlayers = players.filter(player => 
+    `${player.firstName} ${player.lastName}`.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={ styles.container }>
+      <TextInput
+        style={{ height: 40, borderColor: 'gray', borderWidth: 1 }}
+        onChangeText={text => setSearch(text)}
+        value={search}
+        placeholder="Search players..."
+      />
       <FlatList
-        data={players}
+        data={filteredPlayers}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
       />
@@ -84,20 +96,44 @@ const PlayerDetailScreen = ({ route }: { route: any }) => {
 
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={ styles.container }>
       {!playerData ? (
         <Text>Loading...</Text>
       ) : (
         <ScrollView>
-          <Text>ID: {playerData.id}</Text>
-          <Text>Type: {playerData.type}</Text>
-          <Text>Name: {firstName} {lastName}</Text>
-          <Text>Club Name: {getClubName()}</Text>
-          <Text>Total Played Matches: {playerData.championships?.["1"].clubs?.[clubId]?.stats?.totalPlayedMatches}</Text>
-          <Text>Total Goals: {playerData.championships?.["1"].clubs?.[clubId]?.stats?.totalGoals}</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
+            <Text style={styles.playerName}>{firstName} {lastName}</Text>
+            {clubData && clubData.championshipClubs && clubData.championshipClubs[clubId] && clubData.championshipClubs[clubId].defaultAssets && clubData.championshipClubs[clubId].defaultAssets.logo && clubData.championshipClubs[clubId].defaultAssets.logo.small && 
+              <Image source={{ uri: clubData.championshipClubs[clubId].defaultAssets.logo.small }} style={{ width: 50, height: 50, marginLeft: 10 }} />}
+          </View>
 
 
-          {clubData && clubData.championshipClubs && clubData.championshipClubs[clubId] && clubData.championshipClubs[clubId].defaultJerseyUrl && <Image source={{ uri: clubData.championshipClubs[clubId].defaultJerseyUrl }} style={{ width: 100, height: 100 }} />}
+          <View style={styles.infoGrid}>
+  <View style={styles.infoBox}>
+    <Text style={styles.infoBoxTitle}>Games</Text>
+    <Text style={styles.infoBoxValue}>{playerData.championships?.["1"].clubs?.[clubId]?.stats?.totalPlayedMatches ?? 'N/A'}</Text>
+  </View>
+  <View style={styles.infoBox}>
+    <Text style={styles.infoBoxTitle}>Goals</Text>
+    <Text style={styles.infoBoxValue}>{playerData.championships?.["1"].clubs?.[clubId]?.stats?.totalGoals ?? 'N/A'}</Text>
+  </View>
+  <View style={styles.infoBox}>
+    <Text style={styles.infoBoxTitle}>Rating</Text>
+    <Text style={styles.infoBoxValue}>{playerData.championships?.["1"].clubs?.[clubId]?.stats?.averageRating ? playerData.championships?.["1"].clubs?.[clubId]?.stats?.averageRating.toFixed(1) : 'N/A'}</Text>
+  </View>
+  <View style={styles.infoBox}>
+    <Text style={styles.infoBoxTitle}>Assists</Text>
+    <Text style={styles.infoBoxValue}>{playerData.championships?.["1"].clubs?.[clubId]?.stats?.totalGoalAssist ?? 'N/A'}</Text>
+  </View>
+  <View style={styles.infoBox}>
+    <Text style={styles.infoBoxTitle}>Yellow Cards</Text>
+    <Text style={styles.infoBoxValue}>{playerData.championships?.["1"].clubs?.[clubId]?.stats?.totalYellowCard ?? 'N/A'}</Text>
+  </View>
+  <View style={styles.infoBox}>
+    <Text style={styles.infoBoxTitle}>Red Cards</Text>
+    <Text style={styles.infoBoxValue}>{playerData.championships?.["1"].clubs?.[clubId]?.stats?.totalRedCard ?? 'N/A'}</Text>
+  </View>
+</View>
 
         </ScrollView>
       )}
