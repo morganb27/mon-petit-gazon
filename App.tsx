@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Text, View, FlatList, TouchableHighlight, SafeAreaView } from 'react-native';
+import { Text, View, FlatList, TouchableHighlight, SafeAreaView, ScrollView, Image } from 'react-native';
 import axios from 'axios';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -36,7 +36,7 @@ const PlayerListScreen = ({ navigation }: { navigation: any }) => {
   }, []);
 
   const renderItem = ({ item }: { item: Player }) => (
-    <TouchableHighlight onPress={() => navigation.navigate('PlayerDetail', { playerId: item.id, position: item.position, ultraPosition: item.ultraPosition, clubId: item.clubId })}>
+    <TouchableHighlight onPress={() => navigation.navigate('PlayerDetail', { playerId: item.id, firstname: item.firstName, lastName: item.lastName, position: item.position, ultraPosition: item.ultraPosition, clubId: item.clubId })}>
       <View>
         <Text>{item.firstName ? item.firstName : ''} {item.lastName ? item.lastName : ''} - {ultraPositionMapping[item.ultraPosition]}</Text>
       </View>
@@ -55,8 +55,9 @@ const PlayerListScreen = ({ navigation }: { navigation: any }) => {
 };
 
 const PlayerDetailScreen = ({ route }: { route: any }) => {
-  const { playerId, position, clubId } = route.params;
+  const { playerId, firstName, lastName, clubId } = route.params;
   const [playerData, setPlayerData] = useState<any>(null);
+  const [clubData, setClubData] = useState<any>(null);
 
   useEffect(() => {
     axios.get(`https://api.mpg.football/api/data/championship-player-stats/${playerId}/2022`)
@@ -66,26 +67,39 @@ const PlayerDetailScreen = ({ route }: { route: any }) => {
       .catch(error => console.error(error));
   }, [setPlayerData]);
 
+  useEffect(() => {
+    axios.get("https://api.mpg.football/api/data/championship-clubs")
+      .then(response => {
+        setClubData(response.data);
+      })
+      .catch(error => console.error(error));
+  }, [setClubData]);
+
+  const getClubName = () => {
+    if (clubData && clubData.championshipClubs && clubData.championshipClubs[clubId]) {
+      return clubData.championshipClubs[clubId].name["en-GB"]; 
+    }
+    return "N/A";
+  }
+
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
       {!playerData ? (
         <Text>Loading...</Text>
       ) : (
-        <View>
+        <ScrollView>
           <Text>ID: {playerData.id}</Text>
           <Text>Type: {playerData.type}</Text>
-          <Text>Join Date: {playerData.championships?.["1"]?.[clubId].joinDate}</Text>
-          
+          <Text>Name: {firstName} {lastName}</Text>
+          <Text>Club Name: {getClubName()}</Text>
+          <Text>Total Played Matches: {playerData.championships?.["1"].clubs?.[clubId]?.stats?.totalPlayedMatches}</Text>
+          <Text>Total Goals: {playerData.championships?.["1"].clubs?.[clubId]?.stats?.totalGoals}</Text>
 
-          {playerData.championships?.["1"]?.clubs?.[clubId]?.matches?.map((match: any, index: number) => (
-  <View key={index}>
-    <Text>Match ID: {match.matchId}</Text>
-    <Text>Game Week Number: {match.gameWeekNumber}</Text>
-    <Text>Date: {match.date}</Text>
-  </View>
-))}
-        </View>
+
+          {clubData && clubData.championshipClubs && clubData.championshipClubs[clubId] && clubData.championshipClubs[clubId].defaultJerseyUrl && <Image source={{ uri: clubData.championshipClubs[clubId].defaultJerseyUrl }} style={{ width: 100, height: 100 }} />}
+
+        </ScrollView>
       )}
     </SafeAreaView>
   );
