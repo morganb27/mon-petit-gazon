@@ -25,7 +25,7 @@ const ultraPositionMapping: { [key: number]: string } = {
 
 const Stack = createStackNavigator();
 
-const PlayerListScreen = ({ navigation }: { navigation: any }) => {
+export const PlayerListScreen = ({ navigation }: { navigation: any }) => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [search, setSearch] = useState('');
 
@@ -46,8 +46,9 @@ const PlayerListScreen = ({ navigation }: { navigation: any }) => {
   );
 
   const filteredPlayers = players.filter(player => 
-    `${player.firstName} ${player.lastName}`.toLowerCase().includes(search.toLowerCase())
-  );
+    `${player.firstName} ${player.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
+    ultraPositionMapping[player.ultraPosition].toLowerCase().includes(search.toLowerCase())
+);
 
   return (
     <SafeAreaView style={ styles.container }>
@@ -66,7 +67,7 @@ const PlayerListScreen = ({ navigation }: { navigation: any }) => {
   );
 };
 
-const PlayerDetailScreen = ({ route }: { route: any }) => {
+export const PlayerDetailScreen = ({ route }: { route: any }) => {
   const { playerId, firstName, lastName, clubId } = route.params;
   const [playerData, setPlayerData] = useState<any>(null);
   const [clubData, setClubData] = useState<any>(null);
